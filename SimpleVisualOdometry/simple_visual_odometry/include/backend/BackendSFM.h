@@ -1,0 +1,83 @@
+#define EIGEN_DONT_ALIGN_STATICALLY
+#ifndef INCLUDE_BACKENDSFM_H_
+#define INCLUDE_BACKENDSFM_H_
+
+#include "Backend.h"
+
+#include <list>
+
+class BackendSFM: public Backend
+{
+public:
+	BackendSFM();
+	virtual Features3D getFeatures() const override;
+
+protected:
+	virtual void prelude() override;
+
+	virtual void startup(Features2D& trackedFeatures, Features2D& newFeatures)
+				override;
+	virtual void initialization(Features2D& trackedFeatures,
+				Features2D& newFeatures) override;
+	virtual void tracking(Features2D& trackedFeatures, Features2D& newFeatures)
+				override;
+	virtual void tracking1(Features2D& trackedFeatures, Features2D& newFeatures);
+	virtual void recovery(Features2D& trackedFeatures, Features2D& newFeatures)
+				override;
+
+private:
+	void getCorrespondences(const Features2D& trackedFeatures,
+				Features2D& features2D, Features3D& features3D);
+
+	void computeInitialCameras(cv::Mat C, cv::Mat& C0, cv::Mat& C1);
+
+	void cheiralityCheck(const Eigen::Affine3d& T1, const Eigen::Affine3d& T2,
+				const Features3D& triangulated,
+				std::vector<unsigned char>& mask);
+
+	cv::Mat rodriguesFromPose(const Eigen::Affine3d& T);
+	cv::Mat translationFromPose(const Eigen::Affine3d& T);
+	cv::Mat computeCameraMatrix(const cv::Mat& rodrigues, const cv::Mat& t);
+	cv::Mat computeCameraMatrixeigen(const Eigen::Matrix4d& Tm);
+	void generateKeyframe2(const cv::Mat& C, Features2D& trackedFeatures,
+				Features2D& newFeatures);
+	void generateKeyframe(const cv::Mat& C, Features2D& trackedFeatures,
+					Features2D& newFeatures);
+	void computeStructure(const cv::Mat& C, Features2D& trackedFeatures);
+
+private:
+	struct KeyFrame
+	{
+		KeyFrame(const cv::Mat& C, const Eigen::Affine3d F,
+					const Features2D& features) :
+					C(C), F(F), features(features)
+		{
+
+		}
+
+		cv::Mat C;
+		Eigen::Affine3d F;
+		Features2D features;
+	};
+
+	typedef std::list<KeyFrame> KeyFrameList;
+
+private:
+	//Features data
+	Features2D oldFeatures;
+	Features3D old3DPoints;
+	Features3D new3DPoints;
+
+	// Keyframes
+	KeyFrameList keyframes;
+
+	// Stuff for triangulate
+	std::set<unsigned int> toTriangulate;
+
+private:
+	static const unsigned int minInitialFeatures = 100;
+	static const unsigned int minFeatures = 10;
+
+};
+
+#endif /* INCLUDE_BACKENDSFM_H_ */
