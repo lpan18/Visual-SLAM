@@ -1,3 +1,7 @@
-build
-cmake_modules
-five-point-nister
+g2o/
+Pangolin/
+Sophus/
+build/
+cmake_modules/
+five-point-nister/
+*.png
